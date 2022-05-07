@@ -182,20 +182,81 @@ int print_registers() {
   return (0);
 }
 
+
+
+#define OP_MASK 0xFC000000
+#define FUNC_MASK 0x3F
+
+
 /* function to execute bytecode */
 int exec_bytecode() {
   printf("EXECUTING PROGRAM ...\n");
   pc = ADDR_TEXT; // set program counter to the start of our program
-
-  while loop(TEXT_POS(pc) != prog_len){
+  
+  
+  while(TEXT_POS(pc) != prog_len){
     //find opdcode
+    unsigned int hex = text[TEXT_POS(pc) + 1];
+
+    int opcode = (hex & OP_MASK) >> 26;
+    int funct = (hex & FUNC_MASK);
+
+    unsigned int *hexcode = &hex;
+    
+    
+    char opcodeChar[6];
+    sprintf(opcodeChar, x, opcode);
+
+    if(hex == 0x00000000){//NOP
+      opcode_func[0](0, hexcode, NULL, NULL, NULL, NULL);
+    }
+    else if(opcode == 0x00){
+      if(funct == 0x20){//ADD
+        int arg[3];
+        char a[3][32];
+
+        arg[0] = (hex & 0x3E00000) >> 21;
+        arg[1] = (hex & 0x1F0000) >> 16;
+        arg[2] = (hex & 0xF800) >> 11;
+
+        for(int i = 0; i < 3; i++){
+          itoa(arg[i], a[i], 10);
+        }
+
+        opcode_func[1](0, hexcode, opcodeChar, a[0], a[1], a[2]);
+      }
+      else if(funct == 0x02){//SRL
+
+      }
+      else if(funct == 0x00){//SLL
+
+      }
+      else if(funct == 0x08){//JR
+
+      }
+    }
+    else if(opcode == 0x08){//ADDI
+
+    }
+    else if(opcode == 0x0C){//ANDI
+
+    }
+    else if(opcode == 0x06){//BLEZ
+
+    }
+    else if(opcode == 0x05){//BNE
+
+    }
+    else if(opcode == 0x03){//JAL
+
+    }
+    
 
     
     
-    int hex;
-
-    hex = text[TEXT_POS(pc) + 1];
-
+    
+    
+    
     //exctract opcode and funct code
     //store in variables
 
@@ -206,9 +267,6 @@ int exec_bytecode() {
     //2.put them in the function
     //functions or actual functions - is there a difference?
 
-
-    
-  
     pc = pc +4;
   }
   
