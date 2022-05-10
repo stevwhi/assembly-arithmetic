@@ -188,6 +188,10 @@ int print_registers() {
 #define FUNC_MASK 0x3F
 
 
+//terminate program
+//functions
+
+
 /* function to execute bytecode */
 int exec_bytecode() {
   printf("EXECUTING PROGRAM ...\n");
@@ -196,39 +200,43 @@ int exec_bytecode() {
   
   while(TEXT_POS(pc) != prog_len){
     //find opdcode
-    unsigned int hex = text[TEXT_POS(pc) + 1];
+    unsigned int hex = text[TEXT_POS(pc)];
 
     int opcode = (hex & OP_MASK) >> 26;
     int funct = (hex & FUNC_MASK);
-
-    unsigned int *hexcode = &hex;
     
-    
-    char opcodeChar[6];
-    sprintf(opcodeChar, x, opcode);
+    int rs, rt, rd, sa, imm;
+  
 
     if(hex == 0x00000000){//NOP
-      opcode_func[0](0, hexcode, NULL, NULL, NULL, NULL);
+      break;
     }
     else if(opcode == 0x00){
       if(funct == 0x20){//ADD
-        int arg[3];
-        char a[3][32];
 
-        arg[0] = (hex & 0x3E00000) >> 21;
-        arg[1] = (hex & 0x1F0000) >> 16;
-        arg[2] = (hex & 0xF800) >> 11;
+        rs = (hex & 0x3E00000) >> 21;
+        rt = (hex & 0x1F0000) >> 16;
+        rd = (hex & 0xF800) >> 11;
 
-        for(int i = 0; i < 3; i++){
-          itoa(arg[i], a[i], 10);
-        }
+        registers[rd] = registers[rs] + registers[rt];
 
-        opcode_func[1](0, hexcode, opcodeChar, a[0], a[1], a[2]);
       }
       else if(funct == 0x02){//SRL
+        
+        sa = (hex & 0x7C0) >> 6;
+        rt = (hex & 0x1F0000) >> 16;
+        rd = (hex & 0xF800) >> 11;
+
+        registers[rd] = registers[rt] >> sa;
 
       }
-      else if(funct == 0x00){//SLL
+      else if(funct == 0x00){//SLL//andshamt
+
+        sa = (hex & 0x7C0) >> 6;
+        rt = (hex & 0x1F0000) >> 16;
+        rd = (hex & 0xF800) >> 11;
+
+        registers[rd] = registers[rt] << sa;
 
       }
       else if(funct == 0x08){//JR
@@ -236,10 +244,18 @@ int exec_bytecode() {
       }
     }
     else if(opcode == 0x08){//ADDI
+      rs = (hex & 0x3E00000) >> 21;
+      rt = (hex & 0x1F0000) >> 16;
+      imm = (hex & 0xFFFF);
 
+      registers[rt] = registers[rs] + imm;
     }
     else if(opcode == 0x0C){//ANDI
+      rs = (hex & 0x3E00000) >> 21;
+      rt = (hex & 0x1F0000) >> 16;
+      imm = (hex & 0xFFFF);
 
+      registers[rt] = registers[rs] & imm;
     }
     else if(opcode == 0x06){//BLEZ
 
@@ -252,7 +268,7 @@ int exec_bytecode() {
     }
     
 
-    
+    //git commit
     
     
     
@@ -283,7 +299,7 @@ int exec_bytecode() {
   
   
   
-  // print_registers(); // print out the state of registers at the end of execution
+  print_registers(); // print out the state of registers at the end of execution
 
   printf("... DONE!\n");
   return (0);
