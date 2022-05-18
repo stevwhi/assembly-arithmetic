@@ -187,120 +187,82 @@ int print_registers() {
 #define OP_MASK 0xFC000000
 #define FUNC_MASK 0x3F
 
-
-//terminate program
-//functions
-
-
 /* function to execute bytecode */
 int exec_bytecode() {
   printf("EXECUTING PROGRAM ...\n");
   pc = ADDR_TEXT; // set program counter to the start of our program
-  
-  
-  while(TEXT_POS(pc) != prog_len){
-    //find opdcode
-    unsigned int hex = text[TEXT_POS(pc)];
+  unsigned int hex = text[TEXT_POS(pc)];
+  unsigned int opcode, funct, rs, rt, rd, sa, offset, target;
+  signed short imm;
 
-    int opcode = (hex & OP_MASK) >> 26;
-    int funct = (hex & FUNC_MASK);
+  do{
+    printf("executing 0x%08x 0x%08x\n ", pc, hex);
     
-    int rs, rt, rd, sa, imm;
-  
+    opcode = (hex & OP_MASK) >> 26;
+    funct = (hex & FUNC_MASK);
+    rs = (hex & 0x3E00000) >> 21;
+    rt = (hex & 0x1F0000) >> 16;
+    rd = (hex & 0xF800) >> 11;
+    sa = (hex & 0x7C0) >> 6;
+    imm = (hex & 0xFFFF);
+    target = (hex & 0x3FFFFFF)<< 2;
 
-    if(hex == 0x00000000){//NOP
-      break;
-    }
-    else if(opcode == 0x00){
+    if(opcode == 0x00){
       if(funct == 0x20){//ADD
-
-        rs = (hex & 0x3E00000) >> 21;
-        rt = (hex & 0x1F0000) >> 16;
-        rd = (hex & 0xF800) >> 11;
-
+      printf("ADD\n");
         registers[rd] = registers[rs] + registers[rt];
-
       }
       else if(funct == 0x02){//SRL
-        
-        sa = (hex & 0x7C0) >> 6;
-        rt = (hex & 0x1F0000) >> 16;
-        rd = (hex & 0xF800) >> 11;
-
+      printf("SRL\n");
         registers[rd] = registers[rt] >> sa;
-
       }
       else if(funct == 0x00){//SLL//andshamt
-
-        sa = (hex & 0x7C0) >> 6;
-        rt = (hex & 0x1F0000) >> 16;
-        rd = (hex & 0xF800) >> 11;
-
+      printf("SLL\n");
         registers[rd] = registers[rt] << sa;
-
       }
       else if(funct == 0x08){//JR
-
+      printf("JR\n");
+        pc = rs;
       }
     }
-    else if(opcode == 0x08){//ADDI
-      rs = (hex & 0x3E00000) >> 21;
-      rt = (hex & 0x1F0000) >> 16;
-      imm = (hex & 0xFFFF);
-
+    else if(opcode == 0x08){//ADDI   
+    printf("ADDI\n");
       registers[rt] = registers[rs] + imm;
     }
     else if(opcode == 0x0C){//ANDI
-      rs = (hex & 0x3E00000) >> 21;
-      rt = (hex & 0x1F0000) >> 16;
-      imm = (hex & 0xFFFF);
-
+    printf("ANDI\n");
       registers[rt] = registers[rs] & imm;
     }
     else if(opcode == 0x06){//BLEZ
-
+    printf("BLEZ\n");
+      if(rs <= 0){
+        pc = pc + imm*4;
+      }
     }
     else if(opcode == 0x05){//BNE
+      printf("BNE\n");
+      
+      if(registers[rs] != registers[rt]){
+        pc = pc + imm*4;
+      } 
+    }
+    else if(opcode == 0x03){//JAL 
+      printf("JAL\n");
+      registers[31] = pc;
+      pc = target;
+
+      printf("\n%08x\n", registers[31]);
+      printf("\n%08x\n", target);
 
     }
-    else if(opcode == 0x03){//JAL
-
-    }
     
-
-    //git commit
-    
-    
-    
-    
-    //exctract opcode and funct code
-    //store in variables
-
-    //10 if statements with code inside
-
-    //inside each if statement
-    //1.mask method to extract arguments needed for function informed by if statement
-    //2.put them in the function
-    //functions or actual functions - is there a difference?
-
     pc = pc +4;
-  }
-  
-  
-  
-  
-  //if 000 -> 
-  
-  //pc = pc + 4
-  
-  // here goes the code to run the byte code
+    hex = text[TEXT_POS(pc)];
+    
 
-  
-  
-  
+  }while(hex != 0);
   
   print_registers(); // print out the state of registers at the end of execution
-
   printf("... DONE!\n");
   return (0);
 }
@@ -336,7 +298,7 @@ int make_bytecode() {
               arg3) < 2) { // parse the line with label
         printf("parse error line %d\n", j);
         return (-1);
-      }
+      }//printf pc
     } else {
       if (sscanf(&prog[j][0],
                  "%" XSTR(MAX_ARG_LEN) "s %" XSTR(MAX_ARG_LEN) "s %" XSTR(
