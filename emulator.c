@@ -5,16 +5,12 @@
 
 #include "emulator.h"
 
-//instruction type -use mask, shift opcode
-//extract values baseed on instruction type -> function pointer, 10 sections for 10 instructions
-// update value of registers
-
-//
+#define OP_MASK 0xFC000000
+#define FUNC_MASK 0x3F
 
 #define XSTR(x) STR(x)		//can be used for MAX_ARG_LEN in sscanf
 #define STR(x) #x
 
-#define END_ADDR_TEXT 0x10010000
 #define ADDR_TEXT    0x00400000 //where the .text area starts in which the program lives
 #define TEXT_POS(a)  ((a==ADDR_TEXT)?(0):(a - ADDR_TEXT)/4) //can be used to access text[]
 #define ADDR_POS(j)  (j*4 + ADDR_TEXT)                      //convert text index to address
@@ -176,16 +172,11 @@ int print_registers() {
   int i;
   printf("registers:\n");
   for (i = 0; i < MAX_REGISTER; i++) {
-    printf(" %d: %d\n", i, registers[i]);
+    printf(" %d: %08x\n", i, registers[i]);
   }
   printf(" Program Counter: 0x%08x\n", pc);
   return (0);
 }
-
-
-
-#define OP_MASK 0xFC000000
-#define FUNC_MASK 0x3F
 
 /* function to execute bytecode */
 int exec_bytecode() {
@@ -196,7 +187,7 @@ int exec_bytecode() {
   signed short imm;
 
   do{
-    printf("executing 0x%08x 0x%08x\n ", pc, hex);
+    printf("executing 0x%08x 0x%08x ", pc, hex);
     
     opcode = (hex & OP_MASK) >> 26;
     funct = (hex & FUNC_MASK);
@@ -216,13 +207,13 @@ int exec_bytecode() {
       printf("SRL\n");
         registers[rd] = registers[rt] >> sa;
       }
-      else if(funct == 0x00){//SLL//andshamt
+      else if(funct == 0x00){//SLL
       printf("SLL\n");
         registers[rd] = registers[rt] << sa;
       }
       else if(funct == 0x08){//JR
       printf("JR\n");
-        pc = rs;
+        pc = registers[rs]-4;
       }
     }
     else if(opcode == 0x08){//ADDI   
@@ -235,7 +226,7 @@ int exec_bytecode() {
     }
     else if(opcode == 0x06){//BLEZ
     printf("BLEZ\n");
-      if(rs <= 0){
+      if(registers[rs] <= 0){
         pc = pc + imm*4;
       }
     }
@@ -249,16 +240,14 @@ int exec_bytecode() {
     else if(opcode == 0x03){//JAL 
       printf("JAL\n");
       registers[31] = pc;
-      pc = target;
+      pc = target-4;
 
       printf("\n%08x\n", registers[31]);
-      printf("\n%08x\n", target);
-
+      printf("\n%08x\n", pc);
     }
     
     pc = pc +4;
     hex = text[TEXT_POS(pc)];
-    
 
   }while(hex != 0);
   
