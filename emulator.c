@@ -7,6 +7,12 @@
 
 #define OP_MASK 0xFC000000
 #define FUNC_MASK 0x3F
+#define RS_MASK 0x3E00000
+#define RT_MASK 0x1F0000
+#define RD_MASK 0xF800
+#define SA_MASK 0x7C0
+#define IMM_MASK 0xFFFF
+#define TARGET_MASK 0x3FFFFFF
 
 #define XSTR(x) STR(x)		//can be used for MAX_ARG_LEN in sscanf
 #define STR(x) #x
@@ -174,7 +180,7 @@ int print_registers() {
   for (i = 0; i < MAX_REGISTER; i++) {
     printf(" %d: %08x\n", i, registers[i]);
   }
-  printf(" Program Counter: 0x%08x\n", pc);
+  printf(" Program Counter: 0x%d\n", pc);
   return (0);
 }
 
@@ -189,15 +195,18 @@ int exec_bytecode() {
   do{
     printf("executing 0x%08x 0x%08x ", pc, hex);
     
+    //extract operators and operands
     opcode = (hex & OP_MASK) >> 26;
     funct = (hex & FUNC_MASK);
-    rs = (hex & 0x3E00000) >> 21;
-    rt = (hex & 0x1F0000) >> 16;
-    rd = (hex & 0xF800) >> 11;
-    sa = (hex & 0x7C0) >> 6;
-    imm = (hex & 0xFFFF);
-    target = (hex & 0x3FFFFFF)<< 2;
+    rs = (hex & RS_MASK) >> 21;
+    rt = (hex & RT_MASK) >> 16;
+    rd = (hex & RD_MASK) >> 11;
+    sa = (hex & SA_MASK) >> 6;
+    imm = (hex & IMM_MASK);
+    target = (hex & TARGET_MASK)<< 2;
 
+    
+    //complete logic depending on operator
     if(opcode == 0x00){
       if(funct == 0x20){//ADD
       printf("ADD\n");
@@ -232,7 +241,6 @@ int exec_bytecode() {
     }
     else if(opcode == 0x05){//BNE
       printf("BNE\n");
-      
       if(registers[rs] != registers[rt]){
         pc = pc + imm*4;
       } 
@@ -241,9 +249,6 @@ int exec_bytecode() {
       printf("JAL\n");
       registers[31] = pc;
       pc = target-4;
-
-      printf("\n%08x\n", registers[31]);
-      printf("\n%08x\n", pc);
     }
     
     pc = pc +4;
